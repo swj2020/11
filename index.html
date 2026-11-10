@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>부품 공급관리 시뮬레이터</title>
+<style>
+:root{
+  --bg:#d5d9df;--win:#f3f4f6;--panel:#fff;--ink:#23272e;--mute:#5d6571;
+  --line:#b6bec9;--line2:#d9dee5;--navy:#253a5e;--navy2:#33507d;--head:#e5e9ef;
+  --sel:#2f5d9e;--ok:#e3f1e0;--up:#cf2e2a;--down:#1d5cc0;
+  --serif:"Nanum Myeongjo","나눔명조","Batang","바탕","AppleMyungjo","Noto Serif CJK KR","Noto Serif KR","Noto Serif CJK HK",serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg)}
+body{font:12.5px/1.45 "Malgun Gothic","맑은 고딕","Apple SD Gothic Neo","Noto Sans KR","Noto Sans CJK KR","Noto Sans CJK HK",sans-serif;color:var(--ink);padding:12px}
+.win{max-width:1280px;margin:0 auto;background:var(--win);border:1px solid #8892a1;box-shadow:0 2px 6px rgba(0,0,0,.14)}
+.titlebar{display:flex;align-items:center;gap:8px;background:var(--navy);color:#fff;padding:6px 10px;font-weight:700;letter-spacing:-.01em}
+.titlebar .ver{font-weight:400;color:#aebbd0;font-size:11.5px}
+.titlebar .right{margin-left:auto;font-weight:400;font-variant-numeric:tabular-nums;color:#dfe6f1}
+.toolbar{display:flex;flex-wrap:wrap;gap:6px 0;align-items:center;padding:5px 6px;border-bottom:1px solid var(--line);background:linear-gradient(#fbfbfc,#e9ecf0)}
+.tg{display:flex;align-items:center;gap:4px;padding:0 10px;border-right:1px solid var(--line)}
+.tg:last-child{border-right:0}
+.gl{color:var(--mute);font-size:11.5px;margin-right:2px}
+button,select,input{font:inherit;color:var(--ink)}
+button{padding:2px 10px;height:25px;border:1px solid #98a2af;border-radius:2px;background:linear-gradient(#fff,#e7eaee);cursor:pointer;white-space:nowrap}
+button:hover{border-color:#5a7398;background:linear-gradient(#fff,#dde6f2)}
+button:active{background:#d6dee9}
+button.pri{background:linear-gradient(#3d5d90,#2b4672);border-color:#1e3457;color:#fff}
+button.pri:hover{background:linear-gradient(#4669a2,#31507f)}
+button.blink{animation:bl 1s steps(2) infinite}@keyframes bl{50%{border-color:#c0392b;color:#c0392b}}
+button.on{background:#d3deee;border-color:#4d6a93;box-shadow:inset 0 1px 2px rgba(0,0,0,.18)}
+select,input[type=number]{border:1px solid #98a2af;border-radius:2px;padding:1px 4px;background:#fff;height:25px}
+input[type=number]{width:64px;text-align:right}
+label.ck{display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:0 4px}
+kbd{font:10.5px Consolas,monospace;color:var(--mute);margin-left:4px}
+button.pri kbd{color:#c9d5e8}
+.badge{display:inline-block;min-width:16px;padding:0 4px;margin-left:4px;background:var(--up);color:#fff;border-radius:8px;font-size:11px;line-height:16px;text-align:center}
+.content{padding:8px}
+table.sum{width:100%;border-collapse:collapse;margin-bottom:8px;table-layout:fixed;background:#fff}
+table.sum th{background:var(--head);font-weight:600;color:#3a424e;border:1px solid var(--line);padding:3px 6px}
+table.sum td{border:1px solid var(--line);padding:4px 8px;text-align:right;font-size:14.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.sum td small{font-size:11px;font-weight:400;margin-left:4px}
+.row{display:grid;grid-template-columns:5fr 6fr;gap:8px;margin-bottom:8px}
+@media(max-width:920px){.row{grid-template-columns:1fr}table.sum{table-layout:auto}.sumwrap{overflow:auto}}
+.pn{background:var(--panel);border:1px solid var(--line);min-width:0;display:flex;flex-direction:column}
+.ph{display:flex;align-items:center;gap:6px;padding:3px 5px 3px 8px;background:var(--head);border-bottom:1px solid var(--line);font-weight:700;min-height:32px;flex-wrap:wrap}
+.ph::before{content:"";width:6px;height:6px;background:var(--navy2);flex:none}
+.ph .cnt{font-weight:400;color:var(--mute);font-size:11.5px}
+.ph .tools{margin-left:auto;display:flex;gap:4px;align-items:center;font-weight:400}
+.ph .tools{flex-wrap:wrap;justify-content:flex-end;max-width:100%}
+#part{max-width:100%;min-width:0}
+@media(max-width:600px){body{padding:4px}.tg{border-right:0;padding:0 6px}}
+.sc{overflow:auto;max-height:244px;flex:1}
+table.g{border-collapse:collapse;width:100%}
+table.g th{position:sticky;top:0;background:#f0f2f5;border-bottom:1px solid var(--line);border-right:1px solid var(--line2);padding:3px 6px;font-weight:600;color:#3a424e;white-space:nowrap;z-index:1}
+table.g td{padding:3px 6px;border-bottom:1px solid #e5e8ed;border-right:1px solid #eef0f3;white-space:nowrap}
+table.g tbody tr:nth-child(even) td{background:#f8f9fb}
+table.g td.n{text-align:right;font-variant-numeric:tabular-nums}
+table.g td.c{text-align:center}
+table.g tbody tr:hover td{background:#edf2f9}
+#orders tbody tr{cursor:pointer;user-select:none}
+tr.can td{background:var(--ok)!important}
+tr.late td{color:var(--up)}
+tr.done td{color:#8b929c}
+tr.sel td{background:var(--sel)!important;color:#fff!important}
+tr.sel td .up,tr.sel td .down{color:#fff}
+td.low{color:var(--up);font-weight:700}
+.up{color:var(--up)}.down{color:var(--down)}.mute{color:var(--mute)}
+.empty td{color:var(--mute);text-align:center;padding:14px}
+.chartbox{padding:4px 6px}
+#chart{width:100%;height:auto;display:block}
+#log{height:150px;overflow:auto;font:12px/1.6 Consolas,"D2Coding","Malgun Gothic","Noto Sans CJK HK",monospace;padding:3px 8px;background:#fff}
+#log .t-news{color:#7b4a00}#log .t-cp{color:var(--navy2);font-weight:700}#log .t-bad{color:var(--up)}#log .t-ev{color:#9a5b00}#log .t-in{color:#2b7337}
+.statusbar{display:flex;flex-wrap:wrap;border-top:1px solid var(--line);background:#e7eaee;font-size:11.5px;color:#3a424e}
+.statusbar span{padding:2px 10px;border-right:1px solid var(--line)}
+.statusbar .ai{background:var(--navy);color:#fff}
+.statusbar .r{margin-left:auto;border-right:0;border-left:1px solid var(--line)}
+dialog{padding:0;border:1px solid #67738a;box-shadow:0 8px 28px rgba(0,0,0,.3);width:min(94vw,700px);background:var(--win);color:var(--ink)}
+dialog::backdrop{background:rgba(25,35,50,.35)}
+.dt{display:flex;align-items:center;background:var(--navy);color:#fff;padding:4px 4px 4px 10px;font-weight:700}
+.dt .x{margin-left:auto;background:transparent;border:0;color:#fff;font-size:16px;height:22px;padding:0 8px}
+.dt .x:hover{background:#c0392b}
+.db{padding:12px 14px;max-height:70vh;overflow:auto}
+.df{padding:7px 10px;border-top:1px solid var(--line);background:#e9ecf0;display:flex;gap:6px;justify-content:flex-end;align-items:center}
+.df .note{margin-right:auto;color:var(--mute);font-size:11.5px}
+table.rep{border-collapse:collapse;width:100%;background:#fff}
+table.rep th{background:var(--head);border:1px solid var(--line);padding:4px 8px;text-align:left;font-weight:600;width:42%}
+table.rep td{border:1px solid var(--line);padding:4px 8px;text-align:right;font-variant-numeric:tabular-nums}
+.grade{margin-top:10px;padding:8px 10px;border:1px solid var(--line);background:#fff;display:flex;align-items:baseline;gap:10px}
+.grade b{font-size:26px;color:var(--navy)}
+.help h4{margin:10px 0 4px;font-size:13px;color:var(--navy)}
+.help h4:first-child{margin-top:0}
+.help ul{margin:0;padding-left:18px}.help li{margin:2px 0}
+/* 신문 */
+#newsView{position:fixed;inset:0;overflow:auto;background:#c9cdd3;z-index:5;padding:16px}
+#newsView[hidden]{display:none}
+.paper{max-width:980px;margin:0 auto;background:#fbfaf5;color:#1c1c1c;padding:14px 30px 30px;border:1px solid #b3ad9f;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.ptop{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:#6b665c;margin-bottom:8px}
+.mast{font-family:var(--serif);font-size:44px;font-weight:900;text-align:center;letter-spacing:.06em;line-height:1.15;padding:4px 0 6px;border-bottom:3px double #1c1c1c}
+.dline{display:flex;justify-content:space-between;border-bottom:1px solid #1c1c1c;padding:3px 0;font-size:12px;margin-bottom:16px}
+.sec{font-family:var(--serif);font-weight:700;font-size:15px;border-top:2px solid #1c1c1c;padding-top:4px;margin:0 0 8px}
+table.quote{border-collapse:collapse;width:100%;font-size:12.5px;margin-bottom:22px}
+table.quote th{border-bottom:1px solid #1c1c1c;padding:3px 6px;font-weight:700;text-align:center}
+table.quote td{border-bottom:1px solid #dcd6c8;padding:3px 6px;text-align:center;font-variant-numeric:tabular-nums}
+table.quote td.l{text-align:left}
+article{margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #d9d3c4;break-inside:avoid}
+article.ended{color:#77736a}
+.kick{font-size:11.5px;font-weight:700;color:#8e1f1a;letter-spacing:.02em}
+article h3{font-family:var(--serif);font-size:19px;font-weight:800;margin:3px 0 4px;line-height:1.32}
+article.lead h3{font-size:27px}
+article p{margin:6px 0;font-size:13.5px;line-height:1.75;text-align:justify}
+.meta{font-size:11.5px;color:#77736a}
+.imp{font-size:12px;border-top:1px dotted #a39d8f;padding-top:5px;margin-top:6px}
+.cols{column-count:2;column-gap:30px;column-rule:1px solid #d9d3c4}
+@media(max-width:720px){.cols{column-count:1}.mast{font-size:32px}.paper{padding:12px 16px}}
+.paper.mini{padding:4px 16px 2px;box-shadow:none;margin-bottom:0}
+.paper.mini article:last-child{border-bottom:0;margin-bottom:0}
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="titlebar">부품 공급관리 시뮬레이터 <span class="ver">Ver 1.4</span><span class="right" id="tbDate"></span></div>
+  <div class="toolbar">
+    <div class="tg"><span class="gl">진행</span>
+      <button class="pri" id="next">다음 날<kbd>F8</kbd></button>
+      <button id="d7">7일 진행</button>
+      <button id="play">자동 재생</button>
+      <select id="speed" title="자동 재생 속도"><option value="500">느림</option><option value="150" selected>보통</option><option value="30">빠름</option><option value="0">최고속</option></select>
+    </div>
+    <div class="tg"><span class="gl">운영</span>
+      <label class="ck"><input type="checkbox" id="aShip">자동 출하</label>
+      <label class="ck"><input type="checkbox" id="aRe">자동 재고보충</label>
+      <label class="ck" title="켜면 뉴스가 나올 때 자동 재생을 멈추고 속보를 보여 줍니다. 다시 [자동 재생]을 눌러야 이어집니다."><input type="checkbox" id="newsStop" checked>뉴스 시 일시정지</label>
+    </div>
+    <div class="tg"><span class="gl">조회</span>
+      <button id="news">시장 뉴스</button>
+      <button id="cmp">정책 비교</button>
+      <button id="help">도움말</button>
+    </div>
+    <div class="tg"><span class="gl">설정</span>
+      <select id="days" title="운영 기간"><option value="30">30일</option><option value="60">60일</option><option value="90" selected>90일</option><option value="180">180일</option><option value="365">1년</option><option value="730">2년</option><option value="1095">3년</option></select>
+      <button id="reset">새로 시작</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="sumwrap"><table class="sum"><thead><tr><th>운영일</th><th>현금</th><th>재고자산</th><th>순자산</th><th>평판</th><th>정시납기율</th><th>거래 고객</th></tr></thead><tbody><tr id="sumRow"></tr></tbody></table></div>
+
+    <div class="row">
+      <div class="pn"><div class="ph">재고 현황 <span class="cnt">빨간 수량 = 재주문점 이하</span></div><div class="sc"><table class="g" id="inv"></table></div></div>
+      <div class="pn"><div class="ph">수주 현황 <span class="cnt" id="ordCnt"></span>
+        <div class="tools"><button id="shipSel" title="선택한 주문 출하 (행 더블클릭도 가능)">선택 출하</button><button id="shipAll">일괄 출하</button></div></div>
+        <div class="sc"><table class="g" id="orders"></table></div></div>
+    </div>
+    <div class="row">
+      <div class="pn"><div class="ph">발주 현황 <span class="cnt" id="poCnt"></span>
+        <div class="tools"><select id="part"></select><input type="number" id="qty" value="20" min="1" max="999" title="수량"><button id="buy">발주</button><button id="buyMany">일괄 발주…</button></div></div>
+        <div class="sc" style="max-height:200px"><table class="g" id="po"></table></div></div>
+      <div class="pn"><div class="ph">순자산 추이 <span class="cnt">단위: 백만원</span></div><div class="chartbox"><svg id="chart" viewBox="0 0 640 190"></svg></div></div>
+    </div>
+    <div class="pn"><div class="ph">처리 내역</div><div id="log"></div></div>
+  </div>
+  <div class="statusbar" id="status"></div>
+</div>
+
+<div id="newsView" hidden>
+  <div class="paper">
+    <div class="ptop"><button id="newsBack">← 업무 화면으로</button><span>게임 속 가상 신문입니다. 실제 사건과 관계없습니다.</span></div>
+    <div class="mast">자동화부품신문</div>
+    <div class="dline"><span id="newsDate"></span><span id="newsNo"></span></div>
+    <div class="sec">주요 부품 시세 <span style="font-weight:400;font-size:12px">(기준가 대비)</span></div>
+    <table class="quote" id="mkt"></table>
+    <div class="sec">산업·정책</div>
+    <div id="feed"></div>
+  </div>
+</div>
+
+<dialog id="buyDlg">
+  <div class="dt">일괄 발주<button class="x" onclick="this.closest('dialog').close()" title="닫기">×</button></div>
+  <div class="db"><table class="g" id="buyTbl"></table></div>
+  <div class="df"><span class="note" id="buyTotal"></span><button id="fillRp" title="재고+입고예정이 재주문점 이하인 품목에 기본 발주수량 입력">부족분 채우기</button><button id="buyGo" class="pri">발주</button><button onclick="buyDlg.close()">취소</button></div>
+</dialog>
+<dialog id="dlg">
+  <div class="dt"><span id="dlgTitle"></span><button class="x" onclick="this.closest('dialog').close()" title="닫기">×</button></div>
+  <div class="db" id="dlgBody"></div>
+  <div class="df" id="dlgFoot"></div>
+</dialog>
+
+<script>
+// ===== RNG (seedable) =====
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+class RNG{
+  constructor(seed){this.f=mulberry32(seed==null?(Math.random()*2**32)>>>0:seed)}
+  random(){return this.f()}
+  randint(a,b){return a+Math.floor(this.f()*(b-a+1))}
+  choice(arr){return arr[Math.floor(this.f()*arr.length)]}
+  choices(arr,w){let s=w.reduce((x,y)=>x+y,0),r=this.f()*s;for(let i=0;i<arr.length;i++){r-=w[i];if(r<0)return arr[i]}return arr[arr.length-1]}
+  gauss(m,sd){let u=1-this.f(),v=this.f();return m+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+}
+
+// ===== 날짜 (시작일 = 새로 시작한 날) =====
+let START=new Date();START.setHours(0,0,0,0);
+const WD="일월화수목금토";
+function dOf(d){const t=new Date(START);t.setDate(t.getDate()+d);return t}
+function md(d){const t=dOf(d);return String(t.getMonth()+1).padStart(2,"0")+"."+String(t.getDate()).padStart(2,"0")}
+function ymd(d){const t=dOf(d);return t.getFullYear()+"."+md(d)+" ("+WD[t.getDay()]+")"}
+function longDate(d){const t=dOf(d);return `${t.getFullYear()}년 ${t.getMonth()+1}월 ${t.getDate()}일 ${WD[t.getDay()]}요일`}
+
+// ===== 엔진 =====
+const CUSTOMERS=["한빛전자","대성정밀","미래오토메이션","동양기계","코리아패키징","유니온테크","세진산업","나래반도체","태광물류","서진디스플레이"];
+const defaultParts=()=>[
+ ["SEN-001","근접 센서 M12","센서",12000,18000,40,3,20,60,[5,20],5],
+ ["CBL-200","센서 케이블 2m","배선",3000,5500,80,2,40,100,[10,40],4],
+ ["PNE-021","공압 실린더 Ø32","공압",38000,55000,25,4,12,30,[3,12],4],
+ ["VAC-050","진공 그리퍼","공압",22000,34000,20,4,10,25,[2,10],3],
+ ["LMG-300","리니어 가이드 300mm","리니어",68000,95000,10,6,5,10,[1,6],3],
+ ["PLC-100","PLC CPU 모듈","제어",470000,650000,8,5,4,8,[1,3],2],
+ ["MOT-010","서보모터 400W","모터",310000,420000,6,7,4,8,[1,4],2]
+].map(a=>({code:a[0],name:a[1],cat:a[2],cost:a[3],price:a[4],stock:a[5],lead:a[6],rp:a[7],oq:a[8],dq:a[9],pop:a[10]}));
+
+const CATS={센서:{mat:"실리콘 웨이퍼·희토류",tech:"AI 비전 융합 센서"},배선:{mat:"구리",tech:"통신 일체형 산업용 케이블"},공압:{mat:"알루미늄·합성고무",tech:"전동 액추에이터"},리니어:{mat:"특수강",tech:"세라믹 베어링 리니어 기술"},제어:{mat:"반도체 칩",tech:"엣지 AI 컨트롤러"},모터:{mat:"네오디뮴 자석",tech:"고효율 서보 구동 기술"}};
+const NEWS_T=[
+ {cost:[1.12,1.35],dem:[1,1],price:[1,1.06],dur:[8,20],h:"{m} 시세 급등… {c}류 매입 단가 상승",b:"주요 산지의 공급 차질로 {m} 가격이 크게 올랐습니다. {c}류 부품의 매입 단가가 한동안 오를 전망이며, 업계는 판매가 인상을 검토하고 있습니다."},
+ {cost:[0.72,0.92],dem:[1,1.05],price:[0.96,1],dur:[8,20],h:"{m} 가격 하락세… {c}류 매입 단가 낮아져",b:"{m} 재고가 풀리며 시세가 내려갔습니다. {c}류 부품을 싸게 들여올 기회라는 분석이 나옵니다."},
+ {cost:[1,1.08],dem:[1.3,1.8],price:[1.06,1.18],dur:[15,35],h:"'{t}' 개발 성공, {c}류 주문 폭증 예고",b:"한 연구소가 {t} 상용화에 성공했다고 발표했습니다. 설비 교체 수요가 몰리면서 {c}류 부품의 주문과 가격이 함께 오를 것으로 보입니다."},
+ {cost:[1,1],dem:[0.5,0.78],price:[0.84,0.94],dur:[15,35],h:"신기술 '{t}' 등장… 기존 {c}류 수요 위축",b:"{t}이(가) 빠르게 보급되면서 기존 {c}류 제품의 수요가 줄고 있습니다. 재고 처분을 위한 가격 인하도 이어질 전망입니다."},
+ {cost:[0.85,0.95],dem:[1.15,1.4],price:[0.88,0.95],dur:[20,40],h:"{c}류 양산 기술 확립, 가격은 내리고 수요는 늘고",b:"신형 생산 설비가 가동되며 {c}류 부품의 생산 단가가 낮아졌습니다. 판매 가격은 내려가지만 새로운 수요가 크게 늘고 있습니다."},
+ {cost:[1.08,1.2],dem:[0.7,0.9],price:[1.05,1.12],dur:[10,25],h:"환경 규제 강화… {c}류 공급 위축, 가격은 상승",b:"새 환경 규제로 {c}류 생산량이 줄었습니다. 공급이 부족해 가격은 오르지만 설비 투자를 미루는 기업이 늘어 수요는 다소 줄었습니다."},
+ {k:"정치·외교",cost:[1.1,1.3],dem:[0.8,0.95],price:[1.03,1.1],dur:[15,40],h:"주요 교역국과 관세 분쟁 격화… {c}류 수입 단가 상승",b:"주요 교역국이 보복 관세를 주고받으면서 {c}류 수입 부품의 단가가 올랐습니다. 불확실성 때문에 신규 설비 투자는 다소 위축되고 있습니다."},
+ {k:"정치·외교",cost:[0.8,0.92],dem:[1.1,1.35],price:[0.95,1],dur:[20,45],h:"무역협정 타결, {c}류 관세 철폐… 교역 활기",b:"주요 교역국과의 무역협정이 타결되어 {c}류 부품의 관세가 없어집니다. 수입 단가는 내려가고 수출 주문도 늘 것으로 기대됩니다."},
+ {k:"정치·외교",cost:[1.2,1.5],dem:[0.65,0.85],price:[1.08,1.18],dur:[15,35],h:"수출 규제·제재 발동… {c}류 공급난 우려",b:"외교 갈등 끝에 관련 품목의 수출 규제가 시작되어 {c}류 부품 공급이 빠듯해졌습니다. 가격은 뛰었지만 거래를 미루는 업체가 늘어 수요는 줄었습니다."},
+ {k:"정치·외교",cost:[1,1.05],dem:[1.25,1.6],price:[1.05,1.15],dur:[20,45],h:"정부, 제조업 지원 정책 발표… {c}류 설비 투자 보조금",b:"정부가 스마트공장 전환을 돕는 보조금 정책을 내놓았습니다. 설비 교체 수요가 늘면서 {c}류 부품의 주문과 가격이 함께 오를 전망입니다."},
+ {k:"정치·외교",cost:[1.05,1.2],dem:[0.7,0.9],price:[0.95,1],dur:[10,30],h:"국경 분쟁으로 물류 차질… {c}류 해외 거래 위축",b:"인접국과의 외교 갈등이 커지며 물류 경로가 막혔습니다. {c}류 부품의 운송비가 오르고 해외 주문은 줄어들고 있습니다."},
+ {k:"정치·외교",cost:[0.88,0.97],dem:[1.15,1.4],price:[1,1.06],dur:[15,35],h:"정상회담 성공으로 관계 개선… {c}류 수출 길 열려",b:"두 나라 정상이 경제 협력에 합의하면서 {c}류 부품의 교역 장벽이 낮아졌습니다. 수출 주문이 늘고 물류비는 줄어들 것으로 보입니다."},
+ {k:"정치·외교",cost:[1,1.04],dem:[0.55,0.8],price:[0.88,0.96],dur:[15,40],h:"정권 교체 앞두고 정책 불확실성… {c}류 투자 보류 확산",b:"선거를 앞두고 산업 정책 방향이 불투명해지자 기업들이 {c}류 설비 투자를 미루고 있습니다. 수요가 줄면서 판매 가격도 약세입니다."},
+ {k:"정치·외교",cost:[1.05,1.15],dem:[1.3,1.7],price:[1.08,1.2],dur:[20,40],h:"국가 인프라·방위 산업 대형 투자 발표… {c}류 주문 쇄도",b:"정부가 대규모 인프라·방위 산업 투자 계획을 발표했습니다. 관련 협력사들의 {c}류 부품 주문이 몰리면서 가격도 오름세입니다."}
+];
+class Sim{
+  static MAX_DAYS=90; static FIXED=120000; static HOLD=0.0005; static LATE=0.10; static GRACE=5; static CANCEL=0.20;
+  constructor(seed,cash=20000000){
+    this.rng=new RNG(seed);this.day=0;this.cash=cash;this.rep=60;
+    this.parts=Object.fromEntries(defaultParts().map(p=>[p.code,p]));
+    this.orders=[];this.pos=[];this.log=[];this.oid=0;this.poid=0;
+    this.surge={};this.surgeRate=1.25;
+    this.revenue=0;this.penalties=0;this.ontime=0;this.late=0;this.cancelled=0;
+    this.history=[this.netWorth()];this.autoShip=false;this.autoRe=false;this.over=false;
+    this.effects=[];this.news=[];this.newsSeen=0;this.ai=false;this.cp=null;this.lastCp={nw:cash,rev:0,pen:0,on:0,late:0,can:0};this.todayUnits={};
+    const tp=Object.values(this.parts).reduce((a,p)=>a+p.pop,0);
+    this.rate=Object.fromEntries(Object.values(this.parts).map(p=>[p.code,3*2*p.pop/tp*(p.dq[0]+p.dq[1])/2]));
+  }
+  say(m){this.log.push(`[${md(this.day)} D${this.day}] ${m}`)}
+  unitCost(c){const p=this.parts[c],sg=(this.surge[c]!==undefined&&this.surge[c]>=this.day)?this.surgeRate:1;return Math.round(p.cost*sg*this.mod(c).cost)}
+  onOrder(c){return this.pos.filter(x=>x.code==c).reduce((s,x)=>s+x.qty,0)}
+  invValue(){return Object.values(this.parts).reduce((s,p)=>s+p.stock*p.cost,0)}
+  netWorth(){return this.cash+this.invValue()}
+  open(){return this.orders.filter(o=>o.status==="대기")}
+  canShip(o){return Object.entries(o.lines).every(([c,q])=>this.parts[c].stock>=q)}
+  service(){const t=this.ontime+this.late+this.cancelled;return t?100*this.ontime/t:100}
+  purchase(code,qty){
+    if(!(qty>0))return[false,"수량은 1 이상이어야 합니다."];
+    const unit=this.unitCost(code),total=unit*qty,p=this.parts[code];
+    if(total>this.cash)return[false,`현금 부족 (필요 ${fmt(total)}원 / 보유 ${fmt(this.cash)}원)`];
+    this.cash-=total;this.pos.push({id:++this.poid,code,qty,unit,arrive:this.day+p.lead});
+    this.say(`발주 ${p.name} x${qty} @ ${fmt(unit)}원${unit>p.cost?" (가격 상승 중)":unit<p.cost?" (가격 하락 중)":""} → ${md(this.day+p.lead)} 입고 예정`);
+    return[true,"발주 완료"];
+  }
+  ship(id){
+    const o=this.orders.find(x=>x.id===id);
+    if(!o||o.status!=="대기")return[false,"출하할 수 없는 주문입니다."];
+    if(!this.canShip(o))return[false,"재고가 부족합니다."];
+    for(const[c,q]of Object.entries(o.lines))this.parts[c].stock-=q;
+    this.cash+=o.amount;this.revenue+=o.amount;
+    if(this.day<=o.due){o.status="출하(정시)";this.ontime++;this.rep=Math.min(100,this.rep+1);
+      this.say(`주문 #${o.id} ${o.customer} 정시 출하 +${fmt(o.amount)}원`);}
+    else{o.status="출하(지연)";this.late++;const pen=Math.round(o.amount*Sim.LATE);
+      this.cash-=pen;this.penalties+=pen;this.rep=Math.max(0,this.rep-2);
+      this.say(`주문 #${o.id} ${o.customer} 지연 출하 +${fmt(o.amount)}원 (패널티 -${fmt(pen)}원)`);}
+    return[true,"출하 완료"];
+  }
+  shipAll(){let n=0;for(const o of [...this.open()].sort((a,b)=>a.due-b.due))if(this.canShip(o))n+=this.ship(o.id)[0]?1:0;return n}
+  reorderAll(){let n=0;for(const[c,p]of Object.entries(this.parts))if(p.stock+this.onOrder(c)<=p.rp)n+=this.purchase(c,p.oq)[0]?1:0;return n}
+  step(){
+    if(this.over)return;
+    this.day++;this.cp=null;this.newsBefore=this.news.length;this.receive();const m=this.event();this.newsTick();this.newOrders(m);
+    for(const c in this.rate)this.rate[c]+=0.1*(this.todayUnits[c]-this.rate[c]);
+    if(this.autoShip)this.shipAll();
+    if(this.autoRe)this.ai?this.aiReorder():this.reorderAll();
+    this.expire();this.dailyCosts();this.history.push(this.netWorth());
+    if(this.day>=Sim.MAX_DAYS){this.over=true;this.say("시뮬레이션 종료 — 최종 평가를 확인하세요.")}
+    else if(this.cash<-2000000){this.over=true;this.say("현금 잔고 한도 초과 — 부도 처리되었습니다.")}
+    if(!this.over&&this.day%30===0)this.cp=this.checkpoint();
+  }
+  receive(){
+    for(const po of this.pos.filter(x=>x.arrive<=this.day)){this.parts[po.code].stock+=po.qty;this.say(`입고 ${this.parts[po.code].name} x${po.qty}`)}
+    this.pos=this.pos.filter(x=>x.arrive>this.day);
+  }
+  event(){
+    let mult=1;
+    if(this.rng.random()<0.12){
+      const kind=this.rng.choice(["surge","delay","spike"]),code=this.rng.choice(Object.keys(this.parts)),name=this.parts[code].name;
+      if(kind==="surge"){this.surge[code]=this.day+5;this.say(`[이벤트] ${name} 매입가 25% 급등 (5일간)`)}
+      else if(kind==="delay"){const hit=this.pos.filter(x=>x.code===code);hit.forEach(x=>x.arrive+=3);if(hit.length)this.say(`[이벤트] 공급업체 사정으로 ${name} 입고 3일 지연`)}
+      else{mult=2;this.say("[이벤트] 수요 급증 — 오늘 주문이 크게 늘었습니다.")}
+    }
+    return mult;
+  }
+  newOrders(mult){
+    for(const c in this.parts)this.todayUnits[c]=0;const q=this.quality(),qm=0.6+0.6*q,pool=CUSTOMERS.slice(0,this.activeCustomers()),mean=(0.8+2.8*q)*mult,n=Math.max(0,Math.round(this.rng.gauss(mean,1))),codes=Object.keys(this.parts),w=codes.map(c=>this.parts[c].pop*this.mod(c).dem);
+    for(let i=0;i<n;i++){
+      const lines={};
+      for(let k=this.rng.randint(1,3);k>0;k--){const c=this.rng.choices(codes,w),[lo,hi]=this.parts[c].dq;lines[c]=(lines[c]||0)+Math.max(1,Math.round(this.rng.randint(lo,hi)*qm*Math.sqrt(this.mod(c).dem)))}
+      for(const c in lines)this.todayUnits[c]+=lines[c];const amount=Object.entries(lines).reduce((s,[c,q])=>s+this.sellPrice(c)*q,0);
+      const o={id:++this.oid,customer:this.rng.choice(pool),lines,created:this.day,due:this.day+this.rng.randint(3,7),amount,status:"대기"};
+      this.orders.push(o);this.say(`신규 주문 #${o.id} ${o.customer} ${fmt(amount)}원 (납기 ${md(o.due)})`);
+    }
+  }
+  expire(){
+    for(const o of this.open())if(this.day>o.due+Sim.GRACE){
+      o.status="취소";this.cancelled++;const pen=Math.round(o.amount*Sim.CANCEL);
+      this.cash-=pen;this.penalties+=pen;this.rep=Math.max(0,this.rep-5);
+      this.say(`[취소] 주문 #${o.id} ${o.customer} 취소 (패널티 -${fmt(pen)}원, 평판 하락)`);
+    }
+  }
+  // 뉴스 효과(원자재 시세·수요·판매가 배율) — 진행 중인 효과를 모두 곱해 적용
+  mod(c){let k=1,d=1,p=1;for(const e of this.effects)if(e.until>=this.day&&e.codes.includes(c)){k*=e.cost;d*=e.dem;p*=e.price}
+    return{cost:Math.min(1.8,Math.max(0.6,k)),dem:Math.min(2.2,Math.max(0.4,d)),price:Math.min(1.5,Math.max(0.7,p))}}
+  sellPrice(c){return Math.round(this.parts[c].price*this.mod(c).price)}
+  newsTick(){
+    for(const e of this.effects)if(e.until<this.day){e.gone=true;for(const c of e.codes)this.rate[c]/=e.dem}
+    this.effects=this.effects.filter(e=>!e.gone);
+    if(this.rng.random()<0.2){const r=this.rng.random(),n=r<0.6?1:r<0.88?2:3,used=[];for(let i=0;i<n;i++)this.makeNews(used,n)}
+  }
+  makeNews(used=[],n=1){
+    const T=NEWS_T[this.rng.randint(0,NEWS_T.length-1)],cat=this.rng.choice(Object.keys(CATS).filter(k=>!used.includes(k))),C=CATS[cat];
+    const ps=Object.values(this.parts).filter(p=>p.cat===cat),r=a=>+(a[0]+this.rng.random()*(a[1]-a[0])).toFixed(2);
+    const f=t=>t.replace(/\{c\}/g,cat).replace(/\{m\}/g,C.mat).replace(/\{t\}/g,C.tech);
+    const e={day:this.day,k:T.k||"시장·기술",head:f(T.h),body:f(T.b),codes:ps.map(p=>p.code),names:ps.map(p=>p.name).join(", "),cost:r(T.cost),dem:r(T.dem),price:r(T.price),until:this.day+this.rng.randint(T.dur[0],T.dur[1])};
+    used.push(cat);e.n=n;for(const c of e.codes)this.rate[c]*=e.dem;
+    this.effects.push(e);this.news.push(e);this.say(`[뉴스] ${e.head}`);
+  }
+  // 평판(60%)·정시납기율(40%)로 거래 품질 산출 → 주문 고객 수(3~10곳), 하루 주문 수, 주문 수량(×0.6~1.2)에 반영
+  quality(){return 0.6*this.rep/100+0.4*this.service()/100}
+  activeCustomers(){return Math.round(3+7*this.quality())}
+  // AI 재고 정책: 수요 추정(EMA) 기반 목표재고 보충. 급등가 회피, 종료 후 입고분 미발주, 현금 여유 유지
+  aiReorder(){
+    const left=Sim.MAX_DAYS-this.day,open=this.open(),list=[];
+    for(const[c,p]of Object.entries(this.parts)){
+      if(this.day+p.lead+2>Sim.MAX_DAYS)continue;
+      const r=Math.max(this.rate[c],0.3),backlog=open.reduce((a,o)=>a+(o.lines[c]||0),0);
+      const pos=p.stock+this.onOrder(c)-backlog;
+      const target=Math.min(Math.ceil(r*(p.lead+4)*1.25*(this.unitCost(c)<p.cost*0.9?1.5:1)),Math.ceil(r*(left-p.lead)));
+      if(pos<target*0.85)list.push({c,p,r,pos,target});
+    }
+    list.sort((a,b)=>a.pos/a.r-b.pos/b.r);
+    for(const x of list){
+      const unit=this.unitCost(x.c);
+      if(unit>x.p.cost&&x.pos>=x.r*x.p.lead*0.8)continue;
+      const qty=Math.min(x.target-x.pos,Math.floor((this.cash-Sim.FIXED*10)/unit));
+      if(qty>=1)this.purchase(x.c,qty);
+    }
+  }
+  checkpoint(){
+    const L=this.lastCp,nw=this.netWorth(),on=this.ontime-L.on,lt=this.late-L.late,cn=this.cancelled-L.can,t=on+lt+cn;
+    const c={day:this.day,nw,dNw:nw-L.nw,cash:this.cash,inv:this.invValue(),rev:this.revenue-L.rev,pen:this.penalties-L.pen,svc:t?100*on/t:100,svcAll:this.service(),rep:this.rep,lt,cn};
+    this.lastCp={nw,rev:this.revenue,pen:this.penalties,on:this.ontime,late:this.late,can:this.cancelled};
+    this.say(`[중간점검] D${this.day} 순자산 ${fmt(nw)}원 (${c.dNw>=0?"+":""}${fmt(c.dNw)}) · 정시납기율 ${this.service().toFixed(0)}% · 평판 ${this.rep.toFixed(0)}`);
+    return c;
+  }
+  dailyCosts(){this.cash-=Sim.FIXED+Math.round(this.invValue()*Sim.HOLD)}
+  summary(){return{"일차":this.day,"현금":Math.round(this.cash),"재고자산":this.invValue(),"순자산":Math.round(this.netWorth()),"매출":this.revenue,"패널티":this.penalties,"정시출하":this.ontime,"지연출하":this.late,"취소":this.cancelled,"정시납기율(%)":+this.service().toFixed(1),"평판":+this.rep.toFixed(1)}}
+  grade(){const n=2e7+(this.netWorth()-2e7)/(Sim.MAX_DAYS/90);return n>=7e7?"S  (탁월한 공급망 운영)":n>=5e7?"A  (우수)":n>=3.5e7?"B  (양호)":n>=2e7?"C  (개선 필요)":"D  (재고·납기 관리 재점검)"}
+}
+
+// ===== UI =====
+const $=id=>document.getElementById(id),fmt=n=>Math.round(n).toLocaleString("ko-KR");
+let sim=new Sim(),sel=null,timer=null,logIdx=0,playing=false,resume=false;
+let newsPaused=false,resumeNews=false,resumeBuy=false,newsAlertOpen=false,pendingCp=false,goingNews=false;
+$("part").innerHTML=Object.values(sim.parts).map(p=>`<option value="${p.code}">${p.code} ${p.name}</option>`).join("");
+
+// 등락 표시: 국내 관례대로 상승 빨강 ▲, 하락 파랑 ▼
+function pct(v){const d=Math.round((v-1)*100);return d===0?`<span class="mute">-</span>`:`<span class="${d>0?"up":"down"}">${d>0?"▲":"▼"}${Math.abs(d)}%</span>`}
+function won(n){return fmt(n)+"원"}
+
+const DLG_FOOT=`<button class="pri" onclick="dlg.close()">확인</button>`;
+function openDlg(title,body,foot=DLG_FOOT){$("dlgTitle").textContent=title;$("dlgBody").innerHTML=body;$("dlgFoot").innerHTML=foot;$("dlgBody").scrollTop=0;if(!$("dlg").open)$("dlg").showModal()}
+const anyModal=()=>$("dlg").open||$("buyDlg").open||!$("newsView").hidden;
+
+// ---------- 화면 갱신 ----------
+function refresh(){
+  const s=sim,nw=s.netWorth(),d0=s.history[0];
+  $("tbDate").textContent=`${ymd(s.day)}  ·  ${s.day}일차 / ${Sim.MAX_DAYS}일`;
+  const nd=nw-d0;
+  $("sumRow").innerHTML=[
+    `${s.day} <small class="mute">/ ${Sim.MAX_DAYS}</small>`,
+    `<span class="${s.cash<0?"up":""}">${won(s.cash)}</span>`,
+    won(s.invValue()),
+    `${won(nw)}<small class="${nd>0?"up":nd<0?"down":"mute"}">${nd>0?"▲":nd<0?"▼":""}${nd?fmt(Math.abs(nd)):""}</small>`,
+    s.rep.toFixed(0),
+    s.service().toFixed(1)+"%",
+    `${s.activeCustomers()}곳`
+  ].map(v=>`<td>${v}</td>`).join("");
+
+  $("inv").innerHTML="<thead><tr><th>코드</th><th>품명</th><th>재고</th><th>입고예정</th><th>재주문점</th><th>매입가</th><th>판매가</th></tr></thead><tbody>"+
+    Object.values(s.parts).map(p=>{const m=s.mod(p.code),uc=s.unitCost(p.code),low=p.stock+s.onOrder(p.code)<=p.rp;
+      return`<tr><td>${p.code}</td><td>${p.name}</td><td class="n${low?" low":""}">${p.stock}</td><td class="n">${s.onOrder(p.code)||""}</td><td class="n">${p.rp}</td><td class="n">${fmt(uc)}${uc!==p.cost?" "+pct(uc/p.cost):""}</td><td class="n">${fmt(s.sellPrice(p.code))}${m.price!==1?" "+pct(m.price):""}</td></tr>`}).join("")+"</tbody>";
+
+  const open=s.open(),shown=[...open,...s.orders.filter(o=>o.status!=="대기").slice(-8).reverse()];
+  if(sel!==null&&!open.some(o=>o.id===sel))sel=null;
+  $("ordCnt").textContent=`미출하 ${open.length}건 · 출하가능 ${open.filter(o=>s.canShip(o)).length}건`;
+  $("orders").innerHTML="<thead><tr><th>번호</th><th>고객사</th><th>품목</th><th>납기</th><th>잔여</th><th>금액</th><th>상태</th></tr></thead><tbody>"+
+    (shown.length?shown.map(o=>{
+      let c="done",st=o.status,rem="";
+      if(o.status==="대기"){const late=s.day>o.due,can=s.canShip(o);c=late?"late":can?"can":"";st=late?"납기초과":can?"출하가능":"재고부족";
+        rem=late?`+${s.day-o.due}일`:o.due===s.day?"당일":`D-${o.due-s.day}`;if(o.id===sel)c+=" sel"}
+      return`<tr data-id="${o.id}" class="${c}"><td class="c">${String(o.id).padStart(4,"0")}</td><td>${o.customer}</td><td>${Object.entries(o.lines).map(([k,q])=>`${k}×${q}`).join(", ")}</td><td class="c">${md(o.due)}</td><td class="c">${rem}</td><td class="n">${fmt(o.amount)}</td><td class="c">${st}</td></tr>`}).join("")
+    :`<tr class="empty"><td colspan="7">접수된 주문이 없습니다. [다음 날]을 눌러 영업을 시작하세요.</td></tr>`)+"</tbody>";
+
+  $("poCnt").textContent=`입고 대기 ${s.pos.length}건`;
+  $("po").innerHTML="<thead><tr><th>번호</th><th>품명</th><th>수량</th><th>단가</th><th>금액</th><th>입고일</th></tr></thead><tbody>"+
+    (s.pos.length?[...s.pos].sort((a,b)=>a.arrive-b.arrive).map(p=>`<tr><td class="c">${String(p.id).padStart(4,"0")}</td><td>${s.parts[p.code].name}</td><td class="n">${p.qty}</td><td class="n">${fmt(p.unit)}</td><td class="n">${fmt(p.unit*p.qty)}</td><td class="c">${md(p.arrive)}${p.arrive>Sim.MAX_DAYS?" <span class='up'>(기간 후)</span>":""}</td></tr>`).join("")
+    :`<tr class="empty"><td colspan="6">입고 대기 중인 발주가 없습니다.</td></tr>`)+"</tbody>";
+
+  chart();renderLog();newsUi();status();
+}
+function renderLog(){
+  const lg=$("log"),add=sim.log.slice(logIdx);logIdx=sim.log.length;if(!add.length)return;
+  const fr=document.createDocumentFragment();
+  for(const l of add){const d=document.createElement("div");d.textContent=l;
+    d.className=l.includes("[뉴스]")?"t-news":l.includes("[중간점검]")?"t-cp":(l.includes("[취소]")||l.includes("지연 출하")||l.includes("부도"))?"t-bad":l.includes("[이벤트]")?"t-ev":/\] 입고 /.test(l)?"t-in":"";fr.append(d)}
+  lg.append(fr);while(lg.childElementCount>800)lg.firstElementChild.remove();lg.scrollTop=lg.scrollHeight;
+}
+function status(){
+  const un=sim.news.length-sim.newsSeen,ai=aiOn();
+  $("status").innerHTML=`<span>${sim.over?"운영 종료":playing?"자동 재생 중":newsPaused?"뉴스로 일시정지 — [자동 재생]을 누르면 재개":"대기"}</span><span>자동 출하 ${$("aShip").checked?"ON":"OFF"}</span><span>자동 재고보충 ${$("aRe").checked?"ON":"OFF"}</span><span>뉴스 시 일시정지 ${$("newsStop").checked?"ON":"OFF"}</span>${ai?`<span class="ai">AI 운영 중</span>`:""}<span>미확인 뉴스 ${un}건</span><span class="r">운영 기간 ${ymd(0)} ~ ${ymd(Sim.MAX_DAYS)}</span>`;
+}
+function niceStep(x){const p=10**Math.floor(Math.log10(x)),m=x/p;return(m<=1?1:m<=2?2:m<=5?5:10)*p}
+function chart(){
+  const d=sim.history,W=640,H=190,L=44,R=14,T=10,B=22,N=Sim.MAX_DAYS,svg=$("chart");
+  const b0=d[0];let lo=Math.min(...d),hi=Math.max(...d);if(hi-lo<2e6){hi+=1e6;lo-=1e6}
+  const st=niceStep((hi-lo)/4);lo=Math.floor(lo/st)*st;hi=Math.ceil(hi/st)*st;
+  const X=i=>L+(W-L-R)*i/N,Y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo)),dec=st<1e6?1:0;
+  let g="";
+  for(let v=lo;v<=hi+1;v+=st)g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e3e6ea"/><text x="${L-5}" y="${Y(v)+3.5}" text-anchor="end" font-size="10" fill="#6a717c">${(v/1e6).toFixed(dec)}</text>`;
+  const xs=N<=60?10:N<=90?15:N<=180?30:N<=365?60:180;
+  for(let i=0;i<=N;i+=xs)g+=`<line x1="${X(i)}" x2="${X(i)}" y1="${H-B}" y2="${H-B+4}" stroke="#8a929d"/><text x="${X(i)}" y="${H-6}" text-anchor="middle" font-size="10" fill="#6a717c">${i===0?"시작":i+"일"}</text>`;
+  g+=`<line x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}" stroke="#8a929d"/><line x1="${L}" x2="${L}" y1="${T}" y2="${H-B}" stroke="#8a929d"/>`;
+  g+=`<line x1="${L}" x2="${W-R}" y1="${Y(b0)}" y2="${Y(b0)}" stroke="#9aa3ae" stroke-dasharray="4 3"/><text x="${W-R-2}" y="${Y(b0)-4}" text-anchor="end" font-size="10" fill="#7d8590">시작 순자산</text>`;
+  if(d.length>1){
+    const pts=d.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" "),li=d.length-1,lv=d[li];
+    g+=`<polyline points="${pts}" fill="none" stroke="#253a5e" stroke-width="1.6" stroke-linejoin="round"/><circle cx="${X(li)}" cy="${Y(lv)}" r="2.8" fill="#253a5e"/>`;
+    g+=`<text x="${Math.min(X(li)+5,W-R-40)}" y="${Math.max(Y(lv)-6,T+9)}" font-size="10.5" font-weight="700" fill="#253a5e">${(lv/1e6).toFixed(1)}</text>`;
+  }else g+=`<text x="${(L+W-R)/2}" y="${(T+H-B)/2}" text-anchor="middle" font-size="12" fill="#8a929d">운영을 시작하면 추이가 표시됩니다</text>`;
+  svg.innerHTML=g;
+}
+
+// ---------- 신문 ----------
+function art(n,lead){
+  const live=n.until>=sim.day;
+  return`<article class="${lead?"lead ":""}${live?"":"ended"}"><div class="kick">${n.k}${n.n>1?` · 같은 날 ${n.n}건`:""}</div><h3>${n.head}</h3>
+  <div class="meta">${longDate(n.day)} · 영향 ${md(n.until)}까지${live?"":" (종료)"}</div><p>${n.body}</p>
+  <div class="imp">대상: ${n.names}　│　매입가 ${pct(n.cost)}　수요 ${pct(n.dem)}　판매가 ${pct(n.price)}</div></article>`;
+}
+function newsUi(){
+  const un=sim.news.length-sim.newsSeen;
+  $("news").innerHTML="시장 뉴스"+(un>0?`<span class="badge">${un}</span>`:"");
+  if(!$("newsView").hidden){sim.newsSeen=sim.news.length;renderNews()}
+}
+function renderNews(){
+  $("newsDate").textContent=longDate(sim.day);
+  $("newsNo").textContent=`운영 ${sim.day}일차 · 누적 기사 ${sim.news.length}건`;
+  $("mkt").innerHTML="<thead><tr><th>분류</th><th>품명</th><th>매입가</th><th>등락</th><th>수요</th><th>판매가</th><th>등락</th><th>영향 종료</th></tr></thead><tbody>"+Object.values(sim.parts).map(p=>{
+    const m=sim.mod(p.code),uc=sim.unitCost(p.code),ef=sim.effects.filter(e=>e.until>=sim.day&&e.codes.includes(p.code));
+    return`<tr><td>${p.cat}</td><td class="l">${p.name}</td><td>${fmt(uc)}</td><td>${pct(uc/p.cost)}</td><td>${pct(m.dem)}</td><td>${fmt(sim.sellPrice(p.code))}</td><td>${pct(m.price)}</td><td>${ef.length?md(Math.max(...ef.map(e=>e.until))):"-"}</td></tr>`}).join("")+"</tbody>";
+  const list=[...sim.news].reverse().slice(0,40);
+  $("feed").innerHTML=list.length?art(list[0],true)+`<div class="cols">${list.slice(1).map(n=>art(n)).join("")}</div>`:`<p style="color:#77736a">아직 보도된 기사가 없습니다.</p>`;
+}
+function openNews(){resumeNews=resumeNews||playing;stopPlay();sim.newsSeen=sim.news.length;$("newsView").hidden=false;$("newsView").scrollTop=0;renderNews();newsUi();status()}
+function closeNews(){$("newsView").hidden=true;newsUi();status();
+  if(pendingCp&&sim.cp){pendingCp=false;resume=resumeNews;resumeNews=false;showCp();return}pendingCp=false;
+  if(resumeNews){resumeNews=false;startPlay()}}
+function goNews(){goingNews=true;resumeNews=resume;resume=false;$("dlg").close();openNews()}
+function showNewsAlert(list){
+  const wasPlaying=playing;resume=false;pendingCp=!!sim.cp;stopPlay();newsAlertOpen=true; // 뉴스는 자동으로 재개하지 않음
+  if(wasPlaying){newsPaused=true;$("play").classList.add("blink");status()}
+  sim.newsSeen=sim.news.length;newsUi();status();
+  openDlg(`시장 속보 — ${ymd(sim.day)} (${list.length}건)`,
+    `<div class="paper mini">${list.map(n=>art(n)).join("")}</div>`,
+    `<span class="note">${wasPlaying?"자동 재생이 일시정지되었습니다. 확인 후 [자동 재생]을 다시 누르세요.":""}${pendingCp?" 이어서 월간 점검이 표시됩니다.":""}</span><button onclick="goNews()">신문 전체 보기</button><button class="pri" onclick="dlg.close()">확인</button>`);
+}
+
+// ---------- 보고서 ----------
+function repTable(rows){return`<table class="rep">${rows.map(([k,v])=>`<tr><th>${k}</th><td>${v}</td></tr>`).join("")}</table>`}
+function showCp(){
+  const c=sim.cp;resume=resume||playing;stopPlay();status();
+  openDlg(`월간 운영 점검 — ${c.day}일차 (${ymd(c.day)})`,repTable([
+    ["순자산",won(c.nw)],["최근 30일 증감",`<span class="${c.dNw>0?"up":c.dNw<0?"down":""}">${c.dNw>0?"+":""}${won(c.dNw)}</span>`],
+    ["현금",won(c.cash)],["재고자산",won(c.inv)],["30일 매출",won(c.rev)],["30일 패널티",won(c.pen)],
+    ["30일 정시납기율",c.svc.toFixed(1)+"%"],["누적 정시납기율",c.svcAll.toFixed(1)+"%"],["평판",c.rep.toFixed(0)],["30일 지연 / 취소",`${c.lt}건 / ${c.cn}건`]]),
+    `<span class="note">${resume?"확인을 누르면 자동 재생을 이어갑니다.":""}</span>${DLG_FOOT}`);
+}
+function checkEnd(){
+  if(!sim.over)return;stopPlay();resume=false;status();
+  const s=sim.summary(),g=sim.grade();
+  const rows=Object.entries(s).map(([k,v])=>[k,typeof v==="number"?(["현금","재고자산","순자산","매출","패널티"].includes(k)?won(v):v.toLocaleString("ko-KR")):v]);
+  openDlg(`운영 결과 보고 — ${ymd(sim.day)}`,repTable(rows)+`<div class="grade"><span>최종 등급</span><b>${g.split(" ")[0]}</b><span>${g.replace(/^\S+\s+/,"").replace(/[()]/g,"")}</span></div>`);
+}
+
+// ---------- 진행 ----------
+const aiOn=()=>$("aShip").checked&&$("aRe").checked&&playing;
+function stopPlay(){playing=false;clearTimeout(timer);timer=null;$("play").textContent="자동 재생";$("play").classList.remove("on");status()}
+function startPlay(){if(sim.over)return;newsPaused=false;$("play").classList.remove("blink");playing=true;$("play").textContent="재생 중지";$("play").classList.add("on");status();loop()}
+function loop(){if(!playing)return;advance(1);if(playing)timer=setTimeout(loop,+$("speed").value)}
+function advance(n){
+  let fresh=[];
+  const stopOn=$("newsStop").checked;
+  for(let i=0;i<n&&!sim.over;i++){sim.ai=aiOn();sim.step();fresh=sim.news.slice(sim.newsBefore);if(sim.cp||(stopOn&&fresh.length))break}
+  refresh();checkEnd();
+  if(sim.over)return;
+  if(stopOn&&fresh.length)showNewsAlert(fresh);
+  else if(sim.cp)showCp();
+}
+const syncAuto=()=>{sim.autoShip=$("aShip").checked;sim.autoRe=$("aRe").checked;status()};
+
+// ---------- 주문 선택/출하 (다시 그리지 않고 선택만 바꿔야 더블클릭이 동작) ----------
+$("orders").addEventListener("click",e=>{const tr=e.target.closest("tr[data-id]");if(!tr)return;const id=+tr.dataset.id;
+  if(!sim.open().some(o=>o.id===id))return;
+  $("orders").querySelectorAll("tr.sel").forEach(r=>r.classList.remove("sel"));sel=id;tr.classList.add("sel")});
+$("orders").addEventListener("dblclick",e=>{const tr=e.target.closest("tr[data-id]");if(tr){sel=+tr.dataset.id;shipSel()}});
+function shipSel(){
+  if(sel===null)return alert("출하할 주문을 먼저 선택하세요.");
+  const[ok,msg]=sim.ship(sel);if(!ok)alert(msg);refresh();
+}
+
+// ---------- 일괄 발주 ----------
+function openBuy(){
+  resumeBuy=playing;stopPlay();
+  $("buyTbl").innerHTML="<thead><tr><th>품명</th><th>재고</th><th>입고예정</th><th>재주문점</th><th>매입가</th><th>수량</th><th>금액</th></tr></thead><tbody>"+Object.values(sim.parts).map(p=>{const uc=sim.unitCost(p.code);
+    return`<tr><td>${p.code} ${p.name}</td><td class="n${p.stock+sim.onOrder(p.code)<=p.rp?" low":""}">${p.stock}</td><td class="n">${sim.onOrder(p.code)||""}</td><td class="n">${p.rp}</td><td class="n">${fmt(uc)}${uc!==p.cost?" "+pct(uc/p.cost):""}</td><td class="c"><input type="number" min="0" max="999" value="0" data-c="${p.code}"></td><td class="n" id="amt-${p.code}">0</td></tr>`}).join("")+"</tbody>";
+  updTotal();$("buyDlg").showModal();
+}
+function updTotal(){let t=0;document.querySelectorAll("#buyTbl input").forEach(i=>{const c=i.dataset.c,a=sim.unitCost(c)*Math.max(0,parseInt(i.value)||0);t+=a;$("amt-"+c).textContent=fmt(a)});
+  $("buyTotal").innerHTML=`합계 <b>${won(t)}</b> / 보유 현금 ${won(sim.cash)}`+(t>sim.cash?` <b class="up">· 현금 부족</b>`:"")}
+function buyMany(){
+  const items=[...document.querySelectorAll("#buyTbl input")].map(i=>[i.dataset.c,parseInt(i.value)||0]).filter(x=>x[1]>0);
+  if(!items.length)return alert("발주할 수량을 입력하세요.");
+  const total=items.reduce((a,[c,q])=>a+sim.unitCost(c)*q,0);
+  if(total>sim.cash)return alert(`현금이 부족합니다.\n필요 ${won(total)} / 보유 ${won(sim.cash)}`);
+  items.forEach(([c,q])=>sim.purchase(c,q));$("buyDlg").close();refresh();
+}
+
+// ---------- 도움말 ----------
+function showHelp(){
+  openDlg("도움말",`<div class="help">
+  <h4>목표</h4><ul><li>설정한 기간(30일~3년)이 끝났을 때 순자산(현금 + 재고자산)을 최대한 늘리는 것이 목표입니다.</li><li>정시납기율과 평판이 높을수록 거래 고객(3~10곳)과 주문 건수·수량이 늘어납니다.</li></ul>
+  <h4>매일 하는 일</h4><ul><li>[다음 날] 또는 F8로 하루를 진행합니다. 고객 주문이 들어오고, 발주한 물건이 입고됩니다.</li><li>수주 현황에서 초록색 행(출하가능)을 더블클릭하거나 [선택 출하]·[일괄 출하]로 출하합니다.</li><li>재고가 부족하면 발주 현황의 [발주] 또는 [일괄 발주…]로 주문합니다. 품목마다 입고까지 2~7일 걸립니다.</li></ul>
+  <h4>패널티</h4><ul><li>납기를 넘겨 출하하면 주문금액의 10%, 납기 후 5일이 지나면 주문이 취소되고 20%를 물어냅니다.</li><li>매일 고정비 120,000원과 재고 보관비가 나갑니다. 현금이 -2,000,000원 아래로 내려가면 부도입니다.</li></ul>
+  <h4>시장 뉴스</h4><ul><li>원자재 시세, 신기술, 정치·외교 소식이 하루 최대 3건까지 보도되며 매입가·수요·판매가가 일정 기간 바뀝니다.</li><li>뉴스가 나오면 자동 재생 중이어도 멈추고 속보를 보여 줍니다. 확인한 뒤 [자동 재생]을 다시 눌러야 이어집니다.</li><li>도구모음의 [뉴스 시 일시정지]를 끄면 뉴스가 나와도 멈추지 않고 계속 진행하며, 기사는 [시장 뉴스]에 쌓이고 버튼에 미확인 건수가 표시됩니다. 설정은 이 브라우저에 저장됩니다. 상승은 빨강 ▲, 하락은 파랑 ▼입니다.</li></ul>
+  <h4>자동 운영</h4><ul><li>자동 출하·자동 재고보충만 켜면 정해진 규칙(재주문점 이하일 때 기본수량 발주)으로 운영합니다.</li><li>두 가지를 켠 채로 [자동 재생]을 누르면 AI가 수요와 뉴스를 보고 발주량을 조절합니다.</li><li>30일마다 월간 점검 보고서가 표시됩니다.</li></ul></div>`);
+}
+
+// ---------- 이벤트 연결 ----------
+$("next").onclick=()=>advance(1);
+$("d7").onclick=()=>advance(7);
+$("play").onclick=()=>playing?stopPlay():startPlay();
+$("aShip").onchange=$("aRe").onchange=syncAuto;
+try{const v=localStorage.getItem("fa.newsStop");if(v!==null)$("newsStop").checked=v==="1"}catch(e){}
+$("newsStop").onchange=()=>{try{localStorage.setItem("fa.newsStop",$("newsStop").checked?"1":"0")}catch(e){}
+  if(!$("newsStop").checked){newsPaused=false;$("play").classList.remove("blink")}status()};
+$("buy").onclick=()=>{const q=parseInt($("qty").value);if(isNaN(q))return alert("수량을 숫자로 입력하세요.");const[ok,m]=sim.purchase($("part").value,q);if(!ok)alert(m);refresh()};
+$("shipSel").onclick=shipSel;
+$("shipAll").onclick=()=>{if(sim.shipAll()===0)alert("출하 가능한 주문이 없습니다.");refresh()};
+$("reset").onclick=()=>{stopPlay();newsPaused=false;$("play").classList.remove("blink");resume=resumeNews=resumeBuy=pendingCp=false;Sim.MAX_DAYS=+$("days").value;START=new Date();START.setHours(0,0,0,0);sim=new Sim();syncAuto();logIdx=0;sel=null;$("log").textContent="";refresh()};
+$("days").onchange=()=>{if(sim.day>0&&!confirm("기간을 바꾸면 처음부터 다시 시작합니다. 계속할까요?")){$("days").value=Sim.MAX_DAYS;return}$("reset").click()};
+$("news").onclick=openNews;$("newsBack").onclick=closeNews;
+$("help").onclick=showHelp;
+$("buyMany").onclick=openBuy;$("buyGo").onclick=buyMany;$("buyTbl").addEventListener("input",updTotal);
+$("fillRp").onclick=()=>{document.querySelectorAll("#buyTbl input").forEach(i=>{const p=sim.parts[i.dataset.c];i.value=p.stock+sim.onOrder(p.code)<=p.rp?p.oq:0});updTotal()};
+$("buyDlg").addEventListener("close",()=>{if(resumeBuy){resumeBuy=false;startPlay()}});
+$("cmp").onclick=()=>{
+  const pol=[["수동 (아무것도 안 함)",0,0],["자동 출하만",1,0],["자동 출하 + 재고보충",1,1],["AI 운영",1,1,1]];
+  const res=pol.map(([n,a,b,ai])=>{const s=new Sim(42);s.autoShip=!!a;s.autoRe=!!b;s.ai=!!ai;while(s.day<Sim.MAX_DAYS&&!s.over)s.step();return[n,s]});
+  const keys=["순자산","현금","재고자산","매출","패널티","정시출하","지연출하","취소","정시납기율(%)","평판"];
+  const best=res.reduce((a,b)=>b[1].netWorth()>a[1].netWorth()?b:a);
+  openDlg(`운영 정책 비교 — ${Sim.MAX_DAYS}일, 동일 조건(seed 42)`,`<table class="g"><thead><tr><th>항목</th>${res.map(r=>`<th>${r[0]}</th>`).join("")}</tr></thead><tbody>${keys.map(k=>`<tr><td>${k}</td>${res.map(r=>`<td class="n">${r[1].summary()[k].toLocaleString("ko-KR")}</td>`).join("")}</tr>`).join("")}<tr><td>등급</td>${res.map(r=>`<td class="c"><b>${r[1].grade().split(" ")[0]}</b></td>`).join("")}</tr></tbody></table>
+  <p style="margin:10px 0 0">최고 성과: <b>${best[0]}</b> (순자산 ${won(best[1].netWorth())})</p>`);
+};
+$("dlg").addEventListener("close",()=>{
+  if(newsAlertOpen){newsAlertOpen=false;
+    if(goingNews){goingNews=false;return}
+    if(pendingCp&&sim.cp){pendingCp=false;showCp();return}pendingCp=false}
+  if(resume){resume=false;startPlay()}});
+document.addEventListener("keydown",e=>{if(e.key==="F8"){e.preventDefault();if(!anyModal()&&!playing)advance(1)}});
+refresh();
+</script>
+</body>
+</html>
